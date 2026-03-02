@@ -145,7 +145,6 @@ class EmotionReporter:
                 resp = requests.post(url, json={
                     'chat_id': chat_id,
                     'text': message,
-                    'parse_mode': 'Markdown'
                 }, timeout=10)
                 if resp.status_code == 200:
                     logger.info(f"Report sent to {chat_id}")

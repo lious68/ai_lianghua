@@ -359,7 +359,6 @@ def send_telegram(message: str):
             resp = requests.post(url, json={
                 'chat_id':    chat_id,
                 'text':       message,
-                'parse_mode': 'Markdown',
             }, timeout=15)
             if resp.status_code == 200:
                 logger.info(f"RPS report sent to {chat_id}")
