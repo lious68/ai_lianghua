@@ -457,7 +457,16 @@ def main():
         cols = ['ts_code', 'name', 'rps_combo', 'rps_10', 'rps_20',
                 'rps_50', 'rps_120', 'close', 'pct_chg']
         cols = [c for c in cols if c in top.columns]
-        print(top[cols].to_string(index=False, float_format=lambda x: f"{x:6.1f}"))
+        header_map = {
+            'ts_code': '代码', 'name': '名称',
+            'rps_combo': '综合RPS', 'rps_10': 'RPS10',
+            'rps_20': 'RPS20', 'rps_50': 'RPS50',
+            'rps_120': 'RPS120', 'close': '收盘价', 'pct_chg': '涨跌%',
+        }
+        display = top[cols].copy()
+        display['name'] = display['name'].fillna('--')
+        display.columns = [header_map.get(c, c) for c in cols]
+        print(display.to_string(index=False, float_format=lambda x: f"{x:6.1f}"))
     print(f"{'='*65}\n")
     print(f"  DB: {DB_PATH}\n")
 
