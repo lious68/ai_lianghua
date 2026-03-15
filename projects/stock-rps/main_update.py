@@ -283,13 +283,37 @@ def get_last_trading_date(before: str = None) -> str:
     return result
 
 
-def fetch_stock_list(market: str = '科创板') -> List[str]:
-    """获取股票代码列表。market: '科创板' | 'all'"""
+def fetch_stock_list(market: str = 'A股') -> List[str]:
+    """
+    获取股票代码列表。
+    market 取值：
+      'A股'   — 上证主板(60) + 深证主板/中小板(00) + 创业板(30) + 科创板(688)，排除北交所
+      '上证'  — 上证主板 60xxxx.SH
+      '深证'  — 深证主板/中小板 00xxxx.SZ + 创业板 30xxxx.SZ
+      '创业板' — 30xxxx.SZ
+      '科创板' — 688xxx.SH
+      'all'   — 全部（含北交所）
+    """
     pro = _get_pro()
     df = pro.stock_basic(exchange='', list_status='L', fields='ts_code,name')
-    if market == '科创板':
-        return df[df['ts_code'].str.startswith('688')]['ts_code'].tolist()
-    return df['ts_code'].tolist()
+    code = df['ts_code']
+
+    filters = {
+        'A股':   code.str.match(r'^(60|00|30|688)'),
+        '上证':  code.str.startswith('60'),
+        '深证':  code.str.match(r'^(00|30)'),
+        '创业板': code.str.startswith('30'),
+        '科创板': code.str.startswith('688'),
+        'all':   pd.Series([True] * len(df), index=df.index),
+    }
+    mask = filters.get(market)
+    if mask is None:
+        logger.warning(f"未知 market={market}，使用 A股 过滤")
+        mask = filters['A股']
+
+    result = df[mask]['ts_code'].tolist()
+    logger.info(f"Stock list filter={market}: {len(result)} stocks")
+    return result
 
 
 def fetch_daily_prices(stock_list: List[str], start_date: str,
@@ -395,8 +419,8 @@ def main():
     parser.add_argument('--date',   type=str, help='Target trade date (YYYYMMDD)')
     parser.add_argument('--days',   type=int, default=130,
                         help='Historical days to fetch for RPS calculation (default 130)')
-    parser.add_argument('--market', type=str, default='科创板',
-                        help='科创板 | all')
+    parser.add_argument('--market', type=str, default='A股',
+                        help='A股 | 上证 | 深证 | 创业板 | 科创板 | all（默认 A股）')
     parser.add_argument('--top',    type=int, default=50,
                         help='Print top N stocks by RPS_combo')
     parser.add_argument('--basic',  action='store_true',
